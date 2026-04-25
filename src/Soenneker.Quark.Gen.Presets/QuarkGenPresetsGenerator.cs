@@ -96,7 +96,9 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
         sb.AppendLine("    {");
         sb.AppendLine("        context.Margin = global::Soenneker.Quark.Margin.Auto.OnX;");
         sb.AppendLine("        context.Width = global::Soenneker.Quark.Width.IsFull;");
+        sb.AppendLine("        context.MaxWidth = global::Soenneker.Quark.MaxWidth.Token(\"[1400px]\");");
         sb.AppendLine("        context.Padding = global::Soenneker.Quark.Padding.Is2.OnX;");
+        sb.AppendLine("        context.Class = \"container-wrapper\";");
         sb.AppendLine("    });");
         sb.AppendLine();
 
