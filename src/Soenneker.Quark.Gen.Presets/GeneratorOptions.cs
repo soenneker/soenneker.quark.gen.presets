@@ -7,5 +7,5 @@ public sealed class GeneratorOptions
 {
     public static readonly GeneratorOptions Default = new();
 
-    public bool EmitDiagnostics { get; init; }
+    public bool EmitDiagnostics { get; set; }
 }
