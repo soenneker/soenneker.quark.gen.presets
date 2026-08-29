@@ -13,6 +13,10 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
 {
     private const string AttributeMetadataName = "Soenneker.Quark.QuarkPresetAttribute";
 
+    /// <summary>
+    /// Initializes the Quark Gen Presets Generator so it is ready for use.
+    /// </summary>
+    /// <param name="context">HTTP context containing the Authorization header.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<PresetCandidate> candidates = context.SyntaxProvider.ForAttributeWithMetadataName(
