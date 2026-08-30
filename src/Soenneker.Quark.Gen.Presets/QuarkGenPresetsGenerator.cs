@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -13,10 +14,20 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
 {
     private const string AttributeMetadataName = "Soenneker.Quark.QuarkPresetAttribute";
 
+#pragma warning disable RS2008 // This package does not maintain analyzer release-tracking files.
+    private static readonly DiagnosticDescriptor _duplicateMemberName = new(
+        "QGP001",
+        "Duplicate Quark preset member name",
+        "Multiple presets generate the QuarkPresets member name '{0}', or the name is reserved",
+        "Soenneker.Quark.Gen.Presets",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+#pragma warning restore RS2008
+
     /// <summary>
-    /// Initializes the Quark Gen Presets Generator so it is ready for use.
+    /// Registers the preset discovery and registry source-generation pipeline.
     /// </summary>
-    /// <param name="context">HTTP context containing the Authorization header.</param>
+    /// <param name="context">The incremental generator initialization context.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<PresetCandidate> candidates = context.SyntaxProvider.ForAttributeWithMetadataName(
@@ -26,11 +37,23 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(candidates.Collect(), static (ctx, collectedCandidates) =>
         {
-            ImmutableArray<PresetCandidate> presets = collectedCandidates.Distinct()
-                                                                                  .OrderBy(static preset => preset.MemberName, StringComparer.Ordinal)
-                                                                                  .ToImmutableArray();
+            IEnumerable<PresetCandidate> orderedCandidates = collectedCandidates.Distinct()
+                                                                                     .OrderBy(static preset => preset.MemberName, StringComparer.Ordinal);
+            var memberNames = new HashSet<string>(StringComparer.Ordinal) { "ContainerWrapper" };
+            var presets = ImmutableArray.CreateBuilder<PresetCandidate>();
 
-            ctx.AddSource("QuarkPresets.Registry.g.cs", GenerateRegistrySource(presets));
+            foreach (PresetCandidate preset in orderedCandidates)
+            {
+                if (!memberNames.Add(preset.MemberName))
+                {
+                    ctx.ReportDiagnostic(Diagnostic.Create(_duplicateMemberName, Location.None, preset.MemberName));
+                    continue;
+                }
+
+                presets.Add(preset);
+            }
+
+            ctx.AddSource("QuarkPresets.Registry.g.cs", GenerateRegistrySource(presets.ToImmutable()));
         });
     }
 
@@ -92,9 +115,9 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
             sb.AppendLine();
             sb.Append("    public static global::Soenneker.Quark.QuarkPresetToken ");
             sb.Append(preset.MemberName);
-            sb.Append(" { get; } = new(\"");
-            sb.Append(Escape(preset.TokenName));
-            sb.Append("\", static context => _");
+            sb.Append(" { get; } = new(");
+            sb.Append(SymbolDisplay.FormatLiteral(preset.TokenName, quote: true));
+            sb.Append(", static context => _");
             sb.Append(preset.MemberName);
             sb.AppendLine(".Value.Apply(context));");
             sb.AppendLine();
@@ -103,8 +126,6 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
         sb.AppendLine("}");
         return sb.ToString();
     }
-
-    private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
     private readonly struct PresetCandidate : IEquatable<PresetCandidate>
     {
