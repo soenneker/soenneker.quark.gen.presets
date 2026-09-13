@@ -8,6 +8,8 @@
 
 Generates strongly typed `QuarkPresets` registry members from attributed preset classes.
 
+Use this when authoring a preset registry. Applications using Quark's existing presets already receive those tokens with the suite; they do not need this generator just to set `Preset="QuarkPresets.ContainerWrapper"`. For ordinary application styling, start with the [Quark properties guide](https://quark.soenneker.com/properties).
+
 ## Install
 
 ```bash
@@ -19,13 +21,15 @@ dotnet add package Soenneker.Quark.Gen.Presets
 Define a preset in a project that references the Quark preset APIs:
 
 ```csharp
+using Soenneker.Quark;
+
 [QuarkPreset("card")]
 public sealed class CardPreset : QuarkPreset
 {
     public override void Apply(QuarkPresetContext context)
     {
         context.Padding = Padding.Is4;
-        context.Rounded = Rounded.IsLg;
+        context.Rounded = Rounded.Lg;
         context.Class = "card";
     }
 }
