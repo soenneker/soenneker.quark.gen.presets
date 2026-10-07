@@ -69,7 +69,7 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
 
         string memberName = GetMemberName(typeSymbol.Name);
 
-        return new PresetCandidate(typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), tokenName, memberName);
+        return new PresetCandidate(typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), tokenName, memberName, attribute.NamedArguments.Any(static a => a.Key == "IsStatic" && a.Value.Value is true));
     }
 
     private static string GetMemberName(string typeName)
@@ -96,7 +96,7 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("public static partial class QuarkPresets");
         sb.AppendLine("{");
-        sb.AppendLine("    public static global::Soenneker.Quark.QuarkPresetToken ContainerWrapper { get; } = new(\"container-wrapper\", static context =>");
+        sb.AppendLine("    public static global::Soenneker.Quark.QuarkPresetToken ContainerWrapper { get; } = global::Soenneker.Quark.QuarkPresetToken.Freeze(\"container-wrapper\", static context =>");
         sb.AppendLine("    {");
         sb.AppendLine("        context.Margin = global::Soenneker.Quark.Margin.OnX.Auto;");
         sb.AppendLine("        context.Width = global::Soenneker.Quark.Width.IsFull;");
@@ -116,7 +116,7 @@ public sealed class QuarkGenPresetsGenerator : IIncrementalGenerator
             sb.AppendLine();
             sb.Append("    public static global::Soenneker.Quark.QuarkPresetToken ");
             sb.Append(preset.MemberName);
-            sb.Append(" { get; } = new(");
+            sb.Append(preset.IsStatic ? " { get; } = global::Soenneker.Quark.QuarkPresetToken.Freeze(" : " { get; } = new(");
             sb.Append(SymbolDisplay.FormatLiteral(preset.TokenName, quote: true));
             sb.Append(", static context => _");
             sb.Append(preset.MemberName);
